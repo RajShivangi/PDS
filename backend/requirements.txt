@@ -1,6 +1,6 @@
 Django==4.2
 djangorestframework==3.14.0
-mysqlclient==2.1.1
+mysqlclient>=2.2.7
 pytz
 sqlparse
 django-cors-headers==4.3.0

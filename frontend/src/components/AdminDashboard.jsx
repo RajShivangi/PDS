@@ -1,0 +1,109 @@
+import { useEffect, useState } from 'react';
+import api from '../api';
+
+function AdminDashboard() {
+  const [series, setSeries] = useState([]);
+  const [formData, setFormData] = useState({
+    web_series_id: '', name: '', no_of_episodes: 0, release_date: '', language: '', description: ''
+  });
+
+  const fetchSeries = () => {
+    api.get('series/').then(res => setSeries(res.data));
+  };
+
+  useEffect(fetchSeries, []);
+
+  const handleDelete = (id) => {
+    if(window.confirm("Are you sure you want to delete this series?")) {
+        api.delete(`series/${id}/`).then(fetchSeries);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    api.post('series/', formData)
+        .then(() => {
+            alert('Series Added Successfully');
+            fetchSeries();
+            setFormData({ web_series_id: '', name: '', no_of_episodes: 0, release_date: '', language: '', description: '' });
+        })
+        .catch(err => alert('Error: ' + JSON.stringify(err.response.data)));
+  };
+
+  return (
+    <div>
+      <h2 style={{ marginBottom: '20px' }}>Content Management System</h2>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
+        
+        {/* Create Form */}
+        <div className="card" style={{ height: 'fit-content' }}>
+            <div className="card-body">
+                <h3 style={{color: 'white', marginBottom: '15px'}}>Add New Series</h3>
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label>Series ID</label>
+                        <input placeholder="e.g. WS-999" value={formData.web_series_id} onChange={e => setFormData({...formData, web_series_id: e.target.value})} required />
+                    </div>
+                    <div className="form-group">
+                        <label>Title</label>
+                        <input placeholder="Series Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div className="form-group">
+                            <label>Episodes</label>
+                            <input type="number" value={formData.no_of_episodes} onChange={e => setFormData({...formData, no_of_episodes: e.target.value})} required />
+                        </div>
+                        <div className="form-group">
+                            <label>Release Date</label>
+                            <input type="date" value={formData.release_date} onChange={e => setFormData({...formData, release_date: e.target.value})} required />
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label>Language</label>
+                        <input placeholder="e.g. English" value={formData.language} onChange={e => setFormData({...formData, language: e.target.value})} required />
+                    </div>
+                    <div className="form-group">
+                        <label>Description</label>
+                        <textarea rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                    </div>
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Publish Series</button>
+                </form>
+            </div>
+        </div>
+
+        {/* List Table */}
+        <div className="table-container">
+            <h3 style={{color: 'white', marginBottom: '15px'}}>Series Database</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Rel. Date</th>
+                        <th>Ep</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {series.map(s => (
+                        <tr key={s.web_series_id}>
+                            <td style={{ fontFamily: 'monospace', color: '#888' }}>{s.web_series_id}</td>
+                            <td style={{ fontWeight: 'bold' }}>{s.name}</td>
+                            <td>{s.release_date}</td>
+                            <td>{s.no_of_episodes}</td>
+                            <td>
+                                <button onClick={() => handleDelete(s.web_series_id)} className="btn btn-small btn-danger">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+export default AdminDashboard;

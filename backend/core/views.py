@@ -86,9 +86,19 @@ class WebSeriesTypeViewSet(BaseViewSet):
     serializer_class = WebSeriesTypeSerializer
 
 
+# class EpisodeViewSet(BaseViewSet):
+#     queryset = Episode.objects.all()
+#     serializer_class = EpisodeSerializer
+
 class EpisodeViewSet(BaseViewSet):
     queryset = Episode.objects.all()
     serializer_class = EpisodeSerializer
+    def get_queryset(self):
+        queryset = Episode.objects.all()
+        series_id = self.request.query_params.get('web_series_id')
+        if series_id:
+            queryset = queryset.filter(web_series=series_id)
+        return queryset
 
 
 class WebSeriesDubbingViewSet(BaseViewSet):
