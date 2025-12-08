@@ -75,34 +75,47 @@ class ProducerHouseSerializer(serializers.ModelSerializer):
 
 
 class WebSeriesSerializer(serializers.ModelSerializer):
-    language = serializers.SlugRelatedField(
-        slug_field="country_name",         
-        queryset=Language.objects.all()   
-    )
+    # Input: Accepts text string (e.g., "English", "wer")
+    language = serializers.CharField(write_only=True)
+    
+    # Output: Shows the full language object in API responses (optional but good for frontend)
+    language_details = LanguageSerializer(source='language', read_only=True)
 
     class Meta:
         model = WebSeries
-        fields = "__all__"
-    
-        def validate_language(self, value):
-        # If the value is already a Language instance, return it
-            if isinstance(value, Language):
-                return value
+        fields = [
+            "web_series_id", 
+            "name", 
+            "no_of_episodes", 
+            "release_date", 
+            "description", 
+            "language",          # Input (Write)
+            "language_details",  # Output (Read)
+            "producer",
+            "producer_house",
+            "image_url"
+        ]
 
-            # Try to match by primary key (language_code)
-            try:
-                return Language.objects.get(pk=value)
-            except Language.DoesNotExist:
-                pass
-
-            # Try to match by the country_name string
-            try:
-                return Language.objects.get(country_name__iexact=value)
-            except Language.DoesNotExist:
-                raise serializers.ValidationError(
-                    f"Language '{value}' does not exist."
-                )
-
+    def create(self, validated_data):
+        # 1. Remove the string 'language' from the data so it doesn't crash the model
+        language_name = validated_data.pop('language')
+        
+        # 2. Generate a code (First 10 chars, uppercase)
+        # e.g., "French" -> "FRENCH", "LongLanguageName" -> "LONGLANGUA"
+        lang_code = language_name[:10].upper()
+        
+        # 3. Get existing Language OR Create a new one
+        language_instance, created = Language.objects.get_or_create(
+            country_name=language_name,
+            defaults={'language_code': lang_code}
+        )
+        
+        # 4. Create the WebSeries using the actual Language INSTANCE
+        web_series = WebSeries.objects.create(
+            language=language_instance,  # <--- Assign the Object, not the string
+            **validated_data
+        )
+        return web_series
 
 class WebSeriesTypeSerializer(serializers.ModelSerializer):
     class Meta:

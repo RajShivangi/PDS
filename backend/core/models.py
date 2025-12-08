@@ -102,6 +102,7 @@ class WebSeries(models.Model):
         Producer, on_delete=models.SET_NULL, null=True, blank=True
     )
 
+    image_url = models.URLField(max_length=500, blank=True, null=True)
     def __str__(self):
         return self.name
 

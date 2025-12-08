@@ -1,233 +1,417 @@
+from datetime import date, datetime, timedelta
+import random
+
 from core.models import (
-    Country, Language, SeriesType, ProductionHouse, Producer, ProducerHouse,
-    WebSeries, WebSeriesType, Episode, WebSeriesDubbing, WebSeriesSubtitle,
-    WebSeriesCountry, Contract, ViewerAccount, Subscription, Feedback, Schedule
+    Country,
+    Language,
+    ProductionHouse,
+    Producer,
+    WebSeries,
+    Episode,
+    WebSeriesDubbing,
+    WebSeriesSubtitle,
+    WebSeriesCountry,
+    Contract,
+    ViewerAccount,
+    Subscription,
+    Feedback,
+    Schedule,
 )
-from datetime import date, datetime
 
 
 def run():
+    # -------------------------------
+    # 1. Base Countries & Languages
+    # -------------------------------
+    country_data = {
+        "US": "United States",
+        "IN": "India",
+        "UK": "United Kingdom",
+        "JP": "Japan",
+        "BR": "Brazil",
+    }
+
+    for code, name in country_data.items():
+        Country.objects.get_or_create(
+            country_code=code,
+            defaults={"country_name": name},
+        )
+
+    language_data = {
+        "EN": "English",
+        "HI": "Hindi",
+        "JP_L": "Japanese",
+        "ES": "Spanish",
+        "FR": "French",
+    }
+
+    for code, name in language_data.items():
+        Language.objects.get_or_create(
+            language_code=code,
+            defaults={"country_name": name},
+        )
 
     # -------------------------------
-    # 1. Countries
+    # 2. Production Houses & Producers
     # -------------------------------
-    Country.objects.bulk_create([
-        Country(country_code="US", country_name="United States"),
-        Country(country_code="IN", country_name="India"),
-        Country(country_code="JP", country_name="Japan"),
-        Country(country_code="BR", country_name="Brazil"),
-    ], ignore_conflicts=True)
+    ph_defs = [
+        ("PH201", "Starlight Studios", "Los Angeles", "CA", "US"),
+        ("PH202", "Mystic Reel Productions", "London", "London", "UK"),
+        ("PH203", "Dreamscape Entertainment", "New York", "NY", "US"),
+        ("PH204", "Aurora Pictures", "Mumbai", "MH", "IN"),
+        ("PH205", "Neon Wave Media", "Tokyo", "Tokyo", "JP"),
+    ]
 
-    # -------------------------------
-    # 2. Languages
-    # -------------------------------
-    Language.objects.bulk_create([
-        Language(language_code="EN", country_name="English"),
-        Language(language_code="HI", country_name="Hindi"),
-        Language(language_code="JP_L", country_name="Japanese"),
-        Language(language_code="PT", country_name="Portuguese"),
-    ], ignore_conflicts=True)
+    prod_houses = {}
+    for ph_id, ph_name, city, state, ccode in ph_defs:
+        country = Country.objects.get(country_code=ccode)
+        ph, _ = ProductionHouse.objects.get_or_create(
+            production_house_id=ph_id,
+            defaults={
+                "prod_house_name": ph_name,
+                "street": "Main Street",
+                "city": city,
+                "state": state,
+                "country": country,
+                "zipcode": "00000",
+                "year_established": 2000,
+            },
+        )
+        prod_houses[ph_id] = ph
 
-    # -------------------------------
-    # 3. Series Types
-    # -------------------------------
-    SeriesType.objects.bulk_create([
-        SeriesType(series_type_id="T1", type_name="Mystery"),
-        SeriesType(series_type_id="T2", type_name="Action"),
-        SeriesType(series_type_id="T3", type_name="Comedy"),
-        SeriesType(series_type_id="T4", type_name="Sci-Fi"),
-    ], ignore_conflicts=True)
+    producer_defs = [
+        ("PR201", "Lena Hart", "US"),
+        ("PR202", "Raj Malhotra", "IN"),
+        ("PR203", "Kenji Morita", "JP"),
+        ("PR204", "Amelia Frost", "UK"),
+        ("PR205", "Carlos Rivera", "BR"),
+    ]
 
-    # -------------------------------
-    # Production Houses
-    # -------------------------------
-    ph1 = ProductionHouse.objects.create(
-        production_house_id="PH10",
-        prod_house_name="Blue Horizon Studios",
-        street="12 Maple Rd",
-        city="Seattle",
-        state="WA",
-        country=Country.objects.get(country_code="US"),
-        zipcode="98101",
-        year_established=2001
-    )
-
-    ph2 = ProductionHouse.objects.create(
-        production_house_id="PH11",
-        prod_house_name="Kitsune Media",
-        street="77 Sakura Lane",
-        city="Tokyo",
-        state="Tokyo",
-        country=Country.objects.get(country_code="JP"),
-        zipcode="10001",
-        year_established=1992
-    )
-
-    ph3 = ProductionHouse.objects.create(
-        production_house_id="PH12",
-        prod_house_name="Rio Cinematics",
-        street="88 Copacabana St",
-        city="Rio",
-        state="RJ",
-        country=Country.objects.get(country_code="BR"),
-        zipcode="22070",
-        year_established=1999
-    )
+    producers = {}
+    for pid, pname, ccode in producer_defs:
+        country = Country.objects.get(country_code=ccode)
+        p, _ = Producer.objects.get_or_create(
+            producer_id=pid,
+            defaults={
+                "producer_name": pname,
+                "city": "City",
+                "state": "State",
+                "country": country,
+            },
+        )
+        producers[pid] = p
 
     # -------------------------------
-    # Producers
+    # 3. Viewer Accounts & Subscriptions (for Feedback)
     # -------------------------------
-    pr1 = Producer.objects.create(
-        producer_id="P10",
-        producer_name="Elena Morris",
-        city="Seattle",
-        state="WA",
-        country=Country.objects.get(country_code="US")
+    v1, _ = ViewerAccount.objects.get_or_create(
+        account_id="ACC100",
+        defaults={
+            "name": "Alice Viewer",
+            "email": "alice@example.com",
+            "city": "New York",
+            "state": "NY",
+            "country": Country.objects.get(country_code="US"),
+        },
     )
 
-    pr2 = Producer.objects.create(
-        producer_id="P11",
-        producer_name="Hiro Tanaka",
-        city="Tokyo",
-        state="Tokyo",
-        country=Country.objects.get(country_code="JP")
+    v2, _ = ViewerAccount.objects.get_or_create(
+        account_id="ACC101",
+        defaults={
+            "name": "Ravi Viewer",
+            "email": "ravi@example.com",
+            "city": "Mumbai",
+            "state": "MH",
+            "country": Country.objects.get(country_code="IN"),
+        },
     )
 
-    pr3 = Producer.objects.create(
-        producer_id="P12",
-        producer_name="Carlos Mendes",
-        city="Rio",
-        state="RJ",
-        country=Country.objects.get(country_code="BR")
+    Subscription.objects.get_or_create(
+        subscription_id="SUB100",
+        defaults={
+            "account": v1,
+            "plan_type": "Premium",
+            "start_date": date(2023, 1, 1),
+        },
     )
 
-    ProducerHouse.objects.get_or_create(producer=pr1, production_house=ph1)
-    ProducerHouse.objects.get_or_create(producer=pr2, production_house=ph2)
-    ProducerHouse.objects.get_or_create(producer=pr3, production_house=ph3)
-
-    # ---------------------------------------------------------
-    # WEB SERIES 1 — “Shadows of Yesterday” (Mystery)
-    # ---------------------------------------------------------
-    ws1 = WebSeries.objects.create(
-        web_series_id="WS10",
-        name="Shadows of Yesterday",
-        no_of_episodes=3,
-        language=Language.objects.get(language_code="EN"),
-        release_date=date(2024, 2, 1),
-        description="A detective unravels a decades-old cold case.",
-        producer_house=ph1,
-        producer=pr1
+    Subscription.objects.get_or_create(
+        subscription_id="SUB101",
+        defaults={
+            "account": v2,
+            "plan_type": "Standard",
+            "start_date": date(2023, 6, 1),
+        },
     )
 
-    WebSeriesType.objects.create(web_series=ws1, series_type=SeriesType.objects.get(series_type_id="T1"))
+    # -------------------------------
+    # 4. Web Series Definitions (your 10 franchise-style shows)
+    # -------------------------------
+    series_definitions = [
+        # id, name, language_code, prod_house_id, producer_id, base_date, desc, available_countries, dubbings, subtitles
+        (
+            "WS201",
+            "Arcane Academy",
+            "EN",
+            "PH201",
+            "PR201",
+            date(2023, 1, 10),
+            "A group of gifted teens at a secret academy must protect the realm from awakening dark magic.",
+            ["US", "UK", "IN"],
+            ["HI", "FR"],
+            ["EN", "HI", "FR"],
+        ),
+        (
+            "WS202",
+            "Children of the Rift",
+            "EN",
+            "PH203",
+            "PR204",
+            date(2023, 3, 5),
+            "Kids in a quiet town discover a rift to another dimension and strange powers within themselves.",
+            ["US", "UK"],
+            ["ES"],
+            ["EN", "ES"],
+        ),
+        (
+            "WS203",
+            "Flatmates Forever",
+            "EN",
+            "PH203",
+            "PR201",
+            date(2023, 4, 20),
+            "Six young professionals navigate love, work, and chaos in shared apartments in the city.",
+            ["US", "UK", "IN"],
+            ["HI"],
+            ["EN", "HI"],
+        ),
+        (
+            "WS204",
+            "Nightfall City",
+            "EN",
+            "PH202",
+            "PR204",
+            date(2023, 6, 1),
+            "A detective teams up with an immortal night-spirit to solve supernatural crimes.",
+            ["US", "UK"],
+            ["FR"],
+            ["EN", "FR"],
+        ),
+        (
+            "WS205",
+            "Echoes of the Future",
+            "EN",
+            "PH201",
+            "PR205",
+            date(2023, 7, 15),
+            "A scientist sends memories back in time, fracturing reality as people recall events that never happened.",
+            ["US", "BR", "UK"],
+            ["ES", "FR"],
+            ["EN", "ES", "FR"],
+        ),
+        (
+            "WS206",
+            "Royal Heirs",
+            "EN",
+            "PH204",
+            "PR202",
+            date(2023, 9, 1),
+            "Three rival houses vie for the throne in a kingdom held together by fragile alliances.",
+            ["IN", "UK"],
+            ["HI"],
+            ["EN", "HI"],
+        ),
+        (
+            "WS207",
+            "Neon Pulse",
+            "EN",
+            "PH205",
+            "PR203",
+            date(2023, 10, 10),
+            "In a cyberpunk city, a rogue hacker uncovers a government mind-control program.",
+            ["US", "JP"],
+            ["JP_L"],
+            ["EN", "JP_L"],
+        ),
+        (
+            "WS208",
+            "Beyond the Veil",
+            "EN",
+            "PH202",
+            "PR204",
+            date(2023, 11, 20),
+            "A clairvoyant joins a secret society of ghost-hunters to break her family's curse.",
+            ["US", "UK", "IN"],
+            ["HI"],
+            ["EN", "HI"],
+        ),
+        (
+            "WS209",
+            "The Perfect Matchers",
+            "EN",
+            "PH204",
+            "PR202",
+            date(2024, 1, 5),
+            "A data analyst builds a matchmaking startup, only to be matched with her best friend.",
+            ["US", "IN"],
+            ["HI"],
+            ["EN", "HI"],
+        ),
+        (
+            "WS210",
+            "Stardust Voyagers",
+            "EN",
+            "PH201",
+            "PR205",
+            date(2024, 2, 18),
+            "A misfit crew explores uncharted galaxies searching for ancient artifacts.",
+            ["US", "UK", "BR", "JP"],
+            ["ES", "JP_L"],
+            ["EN", "ES", "JP_L"],
+        ),
+    ]
 
-    Episode.objects.bulk_create([
-        Episode(episode_id="E10", web_series=ws1, episode_number=1, episode_title="The Letter", total_viewers=5200, tech_interruption_flag="N", duration_minutes=50),
-        Episode(episode_id="E11", web_series=ws1, episode_number=2, episode_title="Lost Evidence", total_viewers=5800, tech_interruption_flag="N", duration_minutes=48),
-        Episode(episode_id="E12", web_series=ws1, episode_number=3, episode_title="Truth Uncovered", total_viewers=6400, tech_interruption_flag="N", duration_minutes=55),
-    ])
+    # -------------------------------
+    # 5. Create Web Series + Episodes + Dubbing + Subtitles + Country + Contracts + Feedback + Schedule
+    # -------------------------------
+    episode_id_counter = 300
+    schedule_id_counter = 400
+    created_count = 0
 
-    WebSeriesDubbing.objects.create(web_series=ws1, language=Language.objects.get(language_code="HI"), dubbing_studio="Delhi Dubs", dubbing_artist="Arjun Mehra", audio_quality="Dolby", release_date=date(2024, 3, 5))
-    WebSeriesSubtitle.objects.create(web_series=ws1, language=Language.objects.get(language_code="PT"))
+    for ws_id, name, lang_code, ph_id, prod_id, base_date, desc, avail_ccodes, dubb_lang_codes, subtitle_lang_codes in series_definitions:
+        lang = Language.objects.get(language_code=lang_code)
+        ph = prod_houses[ph_id]
+        prod = producers[prod_id]
 
-    for cc in ["US", "IN"]:
-        WebSeriesCountry.objects.create(web_series=ws1, country=Country.objects.get(country_code=cc))
+        # 3 or 4 episodes
+        num_episodes = random.choice([3, 4])
 
-    Contract.objects.create(
-        contract_id="C10",
-        web_series=ws1,
-        prod_house=ph1,
-        contract_start_date=date(2024, 1, 1),
-        contract_end_date=date(2026, 1, 1),
-        per_episode_charge=18000,
-        total_contract_value=54000,
-        contract_status="Active"
-    )
+        ws, created = WebSeries.objects.get_or_create(
+            web_series_id=ws_id,
+            defaults={
+                "name": name,
+                "no_of_episodes": num_episodes,
+                "language": lang,
+                "release_date": base_date,
+                "description": desc,
+                "producer_house": ph,
+                "producer": prod,
+            },
+        )
 
-    Schedule.objects.create(schedule_id="SCH10", episode_id="E10", country_id="US", schedule_start_ts=datetime(2024, 3, 10, 18, 0), schedule_end_ts=datetime(2024, 3, 10, 19, 0), is_live_flag="Y")
+        if created:
+            created_count += 1
 
-    # ---------------------------------------------------------
-    # WEB SERIES 2 — “Samurai Code” (Action)
-    # ---------------------------------------------------------
-    ws2 = WebSeries.objects.create(
-        web_series_id="WS11",
-        name="Samurai Code",
-        no_of_episodes=2,
-        language=Language.objects.get(language_code="JP_L"),
-        release_date=date(2023, 9, 10),
-        description="A rogue samurai rises against a corrupt shogunate.",
-        producer_house=ph2,
-        producer=pr2
-    )
+        # Episodes
+        episodes = []
+        for ep_no in range(1, num_episodes + 1):
+            episode_id = f"E{episode_id_counter}"
+            episode_id_counter += 1
 
-    WebSeriesType.objects.create(web_series=ws2, series_type=SeriesType.objects.get(series_type_id="T2"))
+            ep, _ = Episode.objects.get_or_create(
+                episode_id=episode_id,
+                defaults={
+                    "web_series": ws,
+                    "episode_number": ep_no,
+                    "episode_title": f"{name} - Episode {ep_no}",
+                    "schedule_start_ts": datetime.combine(
+                        base_date + timedelta(days=ep_no),
+                        datetime.min.time(),
+                    ),
+                    "schedule_end_ts": datetime.combine(
+                        base_date + timedelta(days=ep_no),
+                        datetime.min.time(),
+                    ) + timedelta(minutes=45),
+                    "total_viewers": random.randint(5000, 25000),
+                    "tech_interruption_flag": "N",
+                    "duration_minutes": random.choice([35, 40, 45, 50]),
+                },
+            )
+            episodes.append(ep)
 
-    Episode.objects.bulk_create([
-        Episode(episode_id="E13", web_series=ws2, episode_number=1, episode_title="Fallen Honor", total_viewers=7000, tech_interruption_flag="N", duration_minutes=45),
-        Episode(episode_id="E14", web_series=ws2, episode_number=2, episode_title="Rise of the Blade", total_viewers=7600, tech_interruption_flag="N", duration_minutes=50),
-    ])
+        # Dubbing
+        for d_code in dubb_lang_codes:
+            d_lang = Language.objects.get(language_code=d_code)
+            WebSeriesDubbing.objects.get_or_create(
+                web_series=ws,
+                language=d_lang,
+                defaults={
+                    "dubbing_studio": "Global Dubbing Studio",
+                    "dubbing_artist": "Voice Artist",
+                    "audio_quality": "Dolby",
+                    "release_date": base_date + timedelta(days=60),
+                },
+            )
 
-    WebSeriesDubbing.objects.create(web_series=ws2, language=Language.objects.get(language_code="EN"), dubbing_studio="Tokyo Soundworks", dubbing_artist="Kenji Ito", audio_quality="Dolby", release_date=date(2024, 1, 15))
+        # Subtitles
+        for s_code in subtitle_lang_codes:
+            s_lang = Language.objects.get(language_code=s_code)
+            WebSeriesSubtitle.objects.get_or_create(
+                web_series=ws,
+                language=s_lang,
+            )
 
-    WebSeriesSubtitle.objects.create(web_series=ws2, language=Language.objects.get(language_code="PT"))
+        # Country Availability
+        for ccode in avail_ccodes:
+            ctry = Country.objects.get(country_code=ccode)
+            WebSeriesCountry.objects.get_or_create(
+                web_series=ws,
+                country=ctry,
+            )
 
-    for cc in ["JP", "US"]:
-        WebSeriesCountry.objects.create(web_series=ws2, country=Country.objects.get(country_code=cc))
+        # Contract
+        per_episode_charge = random.choice([15000, 20000, 25000])
+        total_contract_value = per_episode_charge * num_episodes
 
-    Contract.objects.create(
-        contract_id="C11",
-        web_series=ws2,
-        prod_house=ph2,
-        contract_start_date=date(2023, 7, 1),
-        contract_end_date=date(2025, 7, 1),
-        per_episode_charge=25000,
-        total_contract_value=50000,
-        contract_status="Active"
-    )
+        Contract.objects.get_or_create(
+            contract_id=f"CON{ws_id[2:]}",
+            defaults={
+                "web_series": ws,
+                "prod_house": ph,
+                "contract_start_date": base_date - timedelta(days=60),
+                "contract_end_date": base_date + timedelta(days=365),
+                "per_episode_charge": per_episode_charge,
+                "total_contract_value": total_contract_value,
+                "contract_status": "Active",
+            },
+        )
 
-    Schedule.objects.create(schedule_id="SCH11", episode_id="E13", country_id="JP", schedule_start_ts=datetime(2024, 4, 1, 20, 0), schedule_end_ts=datetime(2024, 4, 1, 21, 0), is_live_flag="Y")
+        # Feedback – one from each viewer, on the series as a whole
+        Feedback.objects.get_or_create(
+            account=v1,
+            web_series=ws,
+            defaults={
+                "feedback_text": f"Really enjoyed watching {name}!",
+                "rating": random.randint(4, 5),
+                "feedback_date": date.today(),
+            },
+        )
 
-    # ---------------------------------------------------------
-    # WEB SERIES 3 — “Laugh Factory” (Comedy)
-    # ---------------------------------------------------------
-    ws3 = WebSeries.objects.create(
-        web_series_id="WS12",
-        name="Laugh Factory",
-        no_of_episodes=3,
-        language=Language.objects.get(language_code="PT"),
-        release_date=date(2022, 5, 20),
-        description="Three friends start a sketch comedy channel.",
-        producer_house=ph3,
-        producer=pr3
-    )
+        Feedback.objects.get_or_create(
+            account=v2,
+            web_series=ws,
+            defaults={
+                "feedback_text": f"{name} had an interesting storyline.",
+                "rating": random.randint(3, 5),
+                "feedback_date": date.today(),
+            },
+        )
 
-    WebSeriesType.objects.create(web_series=ws3, series_type=SeriesType.objects.get(series_type_id="T3"))
+        # Schedule – schedule first episode in each available country
+        first_ep = episodes[0]
+        for ccode in avail_ccodes:
+            ctry = Country.objects.get(country_code=ccode)
+            schedule_id = f"SCH{schedule_id_counter}"
+            schedule_id_counter += 1
+            Schedule.objects.get_or_create(
+                schedule_id=schedule_id,
+                defaults={
+                    "episode": first_ep,
+                    "country": ctry,
+                    "schedule_start_ts": first_ep.schedule_start_ts,
+                    "schedule_end_ts": first_ep.schedule_end_ts,
+                    "is_live_flag": "Y",
+                },
+            )
 
-    Episode.objects.bulk_create([
-        Episode(episode_id="E15", web_series=ws3, episode_number=1, episode_title="Sketch Gone Wrong", total_viewers=3500, tech_interruption_flag="N", duration_minutes=38),
-        Episode(episode_id="E16", web_series=ws3, episode_number=2, episode_title="The Viral Hit", total_viewers=4100, tech_interruption_flag="N", duration_minutes=40),
-        Episode(episode_id="E17", web_series=ws3, episode_number=3, episode_title="Late Night Chaos", total_viewers=4600, tech_interruption_flag="N", duration_minutes=42),
-    ])
-
-    WebSeriesDubbing.objects.create(web_series=ws3, language=Language.objects.get(language_code="EN"), dubbing_studio="Rio Dubs", dubbing_artist="Marco Silva", audio_quality="Stereo", release_date=date(2023, 2, 10))
-
-    WebSeriesSubtitle.objects.create(web_series=ws3, language=Language.objects.get(language_code="HI"))
-
-    for cc in ["BR", "IN"]:
-        WebSeriesCountry.objects.create(web_series=ws3, country=Country.objects.get(country_code=cc))
-
-    Contract.objects.create(
-        contract_id="C12",
-        web_series=ws3,
-        prod_house=ph3,
-        contract_start_date=date(2022, 4, 1),
-        contract_end_date=date(2024, 4, 1),
-        per_episode_charge=10000,
-        total_contract_value=30000,
-        contract_status="Expired"
-    )
-
-    Schedule.objects.create(schedule_id="SCH12", episode_id="E15", country_id="BR", schedule_start_ts=datetime(2024, 6, 10, 19, 0), schedule_end_ts=datetime(2024, 6, 10, 20, 0), is_live_flag="N")
-
-
-    print("🌟 NEW BULK SEED DATA INSERTED SUCCESSFULLY!")
+    print(f"✅ Seeded {created_count} new WebSeries with episodes, dubbing, subtitles, contracts, feedback, and schedules.")

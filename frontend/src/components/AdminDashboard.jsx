@@ -4,69 +4,115 @@ import api from '../api';
 function AdminDashboard() {
   // --- State Definitions ---
   const [series, setSeries] = useState([]);
+  
+  // Series Forms State
   const [formData, setFormData] = useState({
-    web_series_id: '', name: '', no_of_episodes: 0, release_date: '', language: '', description: ''
+    web_series_id: '', name: '', no_of_episodes: 0, release_date: '', language: '', description: '', image_url: ''
   });
-  const [newUser, setNewUser] = useState({ username: '', password: '', email: '' });
   const [editData, setEditData] = useState(null);
 
-    const openEditModal = (series) => {
-        setEditData({ ...series });
-    };
+  // User Forms State
+  const [newUser, setNewUser] = useState({ username: '', password: '', email: '' });
 
-const closeEditModal = () => {
-    setEditData(null);
-};
-
+  // Episode Forms State
+  const [episodeData, setEpisodeData] = useState(null); 
+  const [newEpisode, setNewEpisode] = useState({
+    episode_id: '',
+    episode_number: '',
+    episode_title: '',
+    duration_minutes: '',
+    total_viewers: 0,
+    tech_interruption_flag: 'N'
+  });
 
   // --- Effects ---
   const fetchSeries = () => {
     api.get('series/').then(res => setSeries(res.data));
   };
 
-  useEffect(fetchSeries, []);
+  useEffect(() => {
+    fetchSeries();
+  }, []);
+
+  // --- Modal Helpers ---
+  const openEditModal = (series) => setEditData({ ...series });
+  const closeEditModal = () => setEditData(null);
+
+  const openEpisodeModal = (seriesId) => {
+      setEpisodeData(seriesId);
+      setNewEpisode({
+        episode_id: '',
+        episode_number: '',
+        episode_title: '',
+        duration_minutes: '',
+        total_viewers: 0,
+        tech_interruption_flag: 'N'
+      });
+  };
+  const closeEpisodeModal = () => setEpisodeData(null);
 
   // --- Handlers ---
-  const handleSaveEdit = async () => {
-    try {
-        await fetch(`http://127.0.0.1:8000/api/series/${editData.web_series_id}/`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(editData),
-        });
+  
+  // 1. Save Edited Series
+    const handleSaveEdit = async () => {
+        try {
+            await api.put(`series/${editData.web_series_id}/`, editData);
+            alert("Updated successfully!");
+            fetchSeries();
+            closeEditModal();
+        } catch (error) {
+            alert("Update failed: " + JSON.stringify(error.response?.data));
+        }
+    };
 
-        alert("Updated successfully!");
+    const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-        // Refresh list
-        fetchSeries();
-        closeEditModal();
+    // Dummy static URL for testing
+    const dummyUrl = "https://m.media-amazon.com/images/I/81YOuOGFCJL._AC_UF894,1000_QL80_.jpg";
 
-    } catch (error) {
-        console.error(error);
-        alert("Update failed!");
+    // Update the create-form state
+    setFormData(prev => ({
+        ...prev,
+        image_url: dummyUrl,
+    }));
+
+    // If editing, update edit state too
+    if (editData) {
+        setEditData(prev => ({
+        ...prev,
+        image_url: dummyUrl,
+        }));
     }
-};
 
+    alert("image added!");
+    };
 
+  // 2. Delete Series
   const handleDelete = (id) => {
     if(window.confirm("Are you sure you want to delete this series?")) {
         api.delete(`series/${id}/`).then(fetchSeries);
     }
   };
 
+  // 3. Create New Series
   const handleSubmit = (e) => {
     e.preventDefault();
     api.post('series/', formData)
         .then(() => {
             alert('Series Added Successfully');
             fetchSeries();
-            setFormData({ web_series_id: '', name: '', no_of_episodes: 0, release_date: '', language: '', description: '' });
+            setFormData({ 
+                web_series_id: '', name: '', no_of_episodes: 0, release_date: '', 
+                language: '', 
+                description: '' 
+            });
         })
         .catch(err => alert('Error: ' + JSON.stringify(err.response.data)));
   };
 
+  // 4. Create New User
   const handleCreateUser = (e) => {
     e.preventDefault();
     api.post('register/', { ...newUser, role: 'customer' })
@@ -77,56 +123,60 @@ const closeEditModal = () => {
         .catch(err => alert('Error creating user: ' + JSON.stringify(err.response?.data)));
   };
 
-  // --- Single Return Statement ---
+  // 5. Create Episode
+  const handleCreateEpisode = (e) => {
+      e.preventDefault();
+      
+      const payload = {
+          ...newEpisode,
+          web_series: episodeData,
+          episode_number: parseInt(newEpisode.episode_number),
+          duration_minutes: parseInt(newEpisode.duration_minutes),
+          total_viewers: parseInt(newEpisode.total_viewers)
+      };
+
+      api.post('episodes/', payload)
+        .then(() => {
+            alert('Episode Added Successfully!');
+            closeEpisodeModal();
+        })
+        .catch(err => alert('Error adding episode: ' + JSON.stringify(err.response?.data)));
+  };
+
   return (
     <div>
       <h2 style={{ marginBottom: '20px' }}>Admin Dashboard</h2>
 
-      {/* --- SECTION 1: User Registration --- */}
+      {/* --- User Registration --- */}
       <div className="card" style={{ marginBottom: '30px', borderLeft: '4px solid #2ecc71' }}>
         <div className="card-body">
             <h3 style={{ color: 'white', marginBottom: '15px' }}>Register New Customer</h3>
             <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '15px', alignItems: 'end' }}>
                 <div className="form-group">
                     <label>Username</label>
-                    <input 
-                        value={newUser.username} 
-                        onChange={e => setNewUser({...newUser, username: e.target.value})} 
-                        required 
-                    />
+                    <input value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} required />
                 </div>
                 <div className="form-group">
                     <label>Password</label>
-                    <input 
-                        type="password" 
-                        value={newUser.password} 
-                        onChange={e => setNewUser({...newUser, password: e.target.value})} 
-                        required 
-                    />
+                    <input type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required />
                 </div>
                 <div className="form-group">
                     <label>Email (Optional)</label>
-                    <input 
-                        type="email" 
-                        value={newUser.email} 
-                        onChange={e => setNewUser({...newUser, email: e.target.value})} 
-                    />
+                    <input type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} />
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ height: '42px', backgroundColor: '#2ecc71', border: 'none' }}>
-                    Add User
-                </button>
+                <button type="submit" className="btn btn-primary" style={{ height: '42px', backgroundColor: '#2ecc71', border: 'none' }}>Add User</button>
             </form>
         </div>
       </div>
 
       <hr style={{borderColor: '#333', margin: '40px 0'}} />
 
-      {/* --- SECTION 2: Series Management --- */}
+      {/* --- Series Management --- */}
       <h3 style={{color: 'white', marginBottom: '15px'}}>Content Management System</h3>
       
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
         
-        {/* Create Form */}
+        {/* Create Series Form */}
         <div className="card" style={{ height: 'fit-content' }}>
             <div className="card-body">
                 <h3 style={{color: 'white', marginBottom: '15px'}}>Add New Series</h3>
@@ -139,20 +189,29 @@ const closeEditModal = () => {
                         <label>Title</label>
                         <input placeholder="Series Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <div className="form-group">
-                            <label>Episodes</label>
-                            <input type="number" value={formData.no_of_episodes} onChange={e => setFormData({...formData, no_of_episodes: e.target.value})} required />
-                        </div>
-                        <div className="form-group">
-                            <label>Release Date</label>
-                            <input type="date" value={formData.release_date} onChange={e => setFormData({...formData, release_date: e.target.value})} required />
-                        </div>
+                    <div className="form-group">
+                        <label>Release Date</label>
+                        <input type="date" value={formData.release_date} onChange={e => setFormData({...formData, release_date: e.target.value})} required />
                     </div>
+                    
+                    {/* CHANGED: Text Input for Language */}
                     <div className="form-group">
                         <label>Language</label>
-                        <input placeholder="e.g. English" value={formData.language} onChange={e => setFormData({...formData, language: e.target.value})} required />
+                        <input 
+                            placeholder="e.g. English, Hindi" 
+                            value={formData.language} 
+                            onChange={e => setFormData({...formData, language: e.target.value})} 
+                            required 
+                        />
                     </div>
+
+                    
+                    <div className="form-group">
+                        <input type="file" 
+                        accept="image/*" 
+                        onChange={handleImageUpload}/>
+                    </div>
+
                     <div className="form-group">
                         <label>Description</label>
                         <textarea rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
@@ -183,163 +242,96 @@ const closeEditModal = () => {
                             <td>{s.release_date}</td>
                             <td>{s.no_of_episodes}</td>
                             <td>
-                                <button
-                                    onClick={() => openEditModal(s)}
-                                    style={{
-                                        background: "transparent",
-                                        border: "1px solid #ff4d4d",
-                                        padding: "4px 8px",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        marginRight: "8px"
-                                    }}
-                                >
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff4d4d">
-                                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 
-                                                7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1.003 1.003 0 
-                                                00-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.83z"/>
-                                    </svg>
-                                </button>
-                                    </td>
-                                    <td>
+                                <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                    
+                                    {/* Edit */}
+                                    <button onClick={() => openEditModal(s)} style={{background: "transparent", border: "1px solid #ff4d4d", padding: "6px", borderRadius: "4px", cursor: "pointer", display: "flex"}} title="Edit Series">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4d4d"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1.003 1.003 0 00-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.83z"/></svg>
+                                    </button>
 
-                                <button
-                                    onClick={() => handleDelete(s.web_series_id)}
-                                    style={{
-                                        background: "transparent",
-                                        border: "1px solid #ff4d4d",
-                                        padding: "4px 8px",
-                                        borderRadius: "4px",
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center"
-                                    }}
-                                >
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#ff4d4d">
-                                        <path d="M9 3V4H4V6H5V20C5 21.1 5.9 22 7 22H17C18.1 22 19 21.1 
-                                                19 20V6H20V4H15V3H9ZM7 6H17V20H7V6ZM9 8V18H11V8H9ZM13 
-                                                8V18H15V8H13Z"/>
-                                    </svg>
-                                </button>
+                                    {/* Add Episode */}
+                                    <button onClick={() => openEpisodeModal(s.web_series_id)} style={{background: "transparent", border: "1px solid #2ecc71", padding: "6px", borderRadius: "4px", cursor: "pointer", display: "flex"}} title="Add Episode">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#2ecc71"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                    </button>
 
+                                    {/* Delete */}
+                                    <button onClick={() => handleDelete(s.web_series_id)} style={{background: "transparent", border: "1px solid #ff4d4d", padding: "6px", borderRadius: "4px", cursor: "pointer", display: "flex"}} title="Delete Series">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4d4d"><path d="M9 3V4H4V6H5V20C5 21.1 5.9 22 7 22H17C18.1 22 19 21.1 19 20V6H20V4H15V3H9ZM7 6H17V20H7V6ZM9 8V18H11V8H9ZM13 8V18H15V8H13Z"/></svg>
+                                    </button>
+
+                                </div>
                             </td>
-
                         </tr>
                     ))}
                 </tbody>
             </table>
         </div>
+        
+        {/* --- MODAL: Edit Series --- */}
         {editData && (
-    <div
-        style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000
-        }}
-    >
-        <div
-            style={{
-                background: "#111",
-                padding: "20px",
-                borderRadius: "8px",
-                width: "380px",
-                color: "white"
-            }}
-        >
-            <h3>Edit Series</h3>
+            <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.7)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
+                <div style={{ background: "#222", padding: "30px", borderRadius: "8px", width: "400px", color: "white", border: "1px solid #444" }}>
+                    <h3>Edit Series</h3>
+                    <div className="form-group"><label>Name</label><input value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} /></div>
+                    
+                    {/* CHANGED: Text Input for Edit Language */}
+                    <div className="form-group">
+                        <label>Language</label>
+                        <input 
+                            value={editData.language} 
+                            onChange={e => setEditData({ ...editData, language: e.target.value })} 
+                        />
+                    </div>
 
-            {/* NAME */}
-            <label>Name</label>
-            <input
-                type="text"
-                value={editData.name}
-                onChange={e =>
-                    setEditData({ ...editData, name: e.target.value })
-                }
-                style={{ width: "100%", marginBottom: "12px" }}
-            />
-
-            {/* LANGUAGE */}
-            <label>Language</label>
-            <input
-                type="text"
-                value={editData.language}
-                onChange={e =>
-                    setEditData({ ...editData, language: e.target.value })
-                }
-                style={{ width: "100%", marginBottom: "12px" }}
-            />
-
-            {/* DESCRIPTION */}
-            <label>Description</label>
-            <textarea
-                value={editData.description || ""}
-                onChange={e =>
-                    setEditData({ ...editData, description: e.target.value })
-                }
-                style={{ width: "100%", height: "70px", marginBottom: "12px" }}
-            />
-
-            {/* EPISODES */}
-            <label>No. of Episodes</label>
-            <input
-                type="number"
-                value={editData.no_of_episodes}
-                onChange={e =>
-                    setEditData({
-                        ...editData,
-                        no_of_episodes: Number(e.target.value)
-                    })
-                }
-                style={{ width: "100%", marginBottom: "15px" }}
-            />
-
-            {/* BUTTONS */}
-            <div style={{ display: "flex", gap: "10px" }}>
-                <button
-                    onClick={handleSaveEdit}
-                    style={{
-                        background: "#ff4d4d",
-                        color: "white",
-                        padding: "8px 12px",
-                        borderRadius: "4px",
-                        border: "none",
-                        cursor: "pointer",
-                        width: "50%"
-                    }}
-                >
-                    Save
-                </button>
-
-                <button
-                    onClick={() => setEditData(null)}
-                    style={{
-                        background: "gray",
-                        color: "white",
-                        padding: "8px 12px",
-                        borderRadius: "4px",
-                        border: "none",
-                        cursor: "pointer",
-                        width: "50%"
-                    }}
-                >
-                    Cancel
-                </button>
+                    <div className="form-group"><label>Description</label><textarea value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} /></div>
+                    <div className="form-group"><label>Episodes</label><input type="number" value={editData.no_of_episodes} onChange={e => setEditData({ ...editData, no_of_episodes: Number(e.target.value) })} /></div>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        <button onClick={handleSaveEdit} className="btn btn-primary" style={{flex: 1}}>Save</button>
+                        <button onClick={closeEditModal} className="btn btn-secondary" style={{flex: 1}}>Cancel</button>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-)}
+        )}
+
+        {/* --- MODAL: Add Episode --- */}
+        {episodeData && (
+            <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.7)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
+                <div style={{ background: "#222", padding: "30px", borderRadius: "8px", width: "400px", color: "white", border: "1px solid #444" }}>
+                    <h3>Add Episode to {episodeData}</h3>
+                    <form onSubmit={handleCreateEpisode}>
+                        <div className="form-group">
+                            <label>Episode ID (e.g. EP-101)</label>
+                            <input value={newEpisode.episode_id} onChange={e => setNewEpisode({...newEpisode, episode_id: e.target.value})} required />
+                        </div>
+                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+                            <div className="form-group">
+                                <label>Number</label>
+                                <input type="number" value={newEpisode.episode_number} onChange={e => setNewEpisode({...newEpisode, episode_number: e.target.value})} required />
+                            </div>
+                            <div className="form-group">
+                                <label>Duration (mins)</label>
+                                <input type="number" value={newEpisode.duration_minutes} onChange={e => setNewEpisode({...newEpisode, duration_minutes: e.target.value})} required />
+                            </div>
+                        </div>
+                        <div className="form-group">
+                            <label>Title</label>
+                            <input value={newEpisode.episode_title} onChange={e => setNewEpisode({...newEpisode, episode_title: e.target.value})} required />
+                        </div>
+                        <div className="form-group">
+                            <label>Tech Interruption?</label>
+                            <select value={newEpisode.tech_interruption_flag} onChange={e => setNewEpisode({...newEpisode, tech_interruption_flag: e.target.value})}>
+                                <option value="N">No</option>
+                                <option value="Y">Yes</option>
+                            </select>
+                        </div>
+                        <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+                            <button type="submit" className="btn btn-primary" style={{flex: 1}}>Add Episode</button>
+                            <button type="button" onClick={closeEpisodeModal} className="btn btn-secondary" style={{flex: 1}}>Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )}
 
       </div>
     </div>

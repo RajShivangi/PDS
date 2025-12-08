@@ -16,8 +16,29 @@ function CustomerDashboard() {
         {series.map(s => (
           <div key={s.web_series_id} className="card">
             {/* Placeholder for Poster Image - uses a gray block if no image */}
-            <div style={{ height: '140px', backgroundColor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
+            {/* <div style={{ height: '140px', backgroundColor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
                <span>POSTER</span>
+            </div> */}
+            <div style={{ height: '140px', overflow: 'hidden', borderRadius: '6px' }}>
+                {s.image_url ? (
+                    <img 
+                        src={s.image_url}
+                        alt={s.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                ) : (
+                    <div style={{
+                        height: '100%',
+                        backgroundColor: '#333',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#777',
+                        fontSize: '0.9rem'
+                    }}>
+                        No Image
+                    </div>
+                )}
             </div>
             <div className="card-body">
               <div>
