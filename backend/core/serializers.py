@@ -75,9 +75,33 @@ class ProducerHouseSerializer(serializers.ModelSerializer):
 
 
 class WebSeriesSerializer(serializers.ModelSerializer):
+    language = serializers.SlugRelatedField(
+        slug_field="country_name",         
+        queryset=Language.objects.all()   
+    )
+
     class Meta:
         model = WebSeries
         fields = "__all__"
+    
+        def validate_language(self, value):
+        # If the value is already a Language instance, return it
+            if isinstance(value, Language):
+                return value
+
+            # Try to match by primary key (language_code)
+            try:
+                return Language.objects.get(pk=value)
+            except Language.DoesNotExist:
+                pass
+
+            # Try to match by the country_name string
+            try:
+                return Language.objects.get(country_name__iexact=value)
+            except Language.DoesNotExist:
+                raise serializers.ValidationError(
+                    f"Language '{value}' does not exist."
+                )
 
 
 class WebSeriesTypeSerializer(serializers.ModelSerializer):

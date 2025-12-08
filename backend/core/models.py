@@ -92,7 +92,7 @@ class WebSeries(models.Model):
     web_series_id = models.CharField(max_length=20, primary_key=True)
     name = models.CharField(max_length=100)
     no_of_episodes = models.IntegerField()
-    original_language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True)
+    language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True)
     release_date = models.DateField()
     description = models.CharField(max_length=500, blank=True, null=True)
     producer_house = models.ForeignKey(
