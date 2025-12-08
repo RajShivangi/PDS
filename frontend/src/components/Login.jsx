@@ -1,11 +1,35 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api';
+import { jwtDecode } from "jwt-decode"; // Requires: npm install jwt-decode
 
 function Login({ setUserRole }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (role) => {
-    setUserRole(role);
-    navigate(role === 'customer' ? '/customer' : '/admin');
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      // 1. Send credentials to Django
+      const res = await api.post('token/', { username, password });
+      
+      // 2. Save tokens
+      localStorage.setItem('access_token', res.data.access);
+      localStorage.setItem('refresh_token', res.data.refresh);
+
+      // 3. Decode token to get role
+      const decoded = jwtDecode(res.data.access);
+      const role = decoded.role;
+
+      // 4. Update App State and Redirect
+      setUserRole(role);
+      navigate(role === 'employee' ? '/admin' : '/customer');
+
+    } catch (err) {
+      console.error(err);
+      alert('Invalid Credentials or Server Error');
+    }
   };
 
   return (
@@ -13,21 +37,28 @@ function Login({ setUserRole }) {
       <div style={{ backgroundColor: 'rgba(0,0,0,0.75)', padding: '60px', borderRadius: '4px', maxWidth: '450px', width: '100%', border: '1px solid #333' }}>
         <h1 style={{ marginBottom: '30px', textAlign: 'center', fontSize: '2.5rem' }}>Sign In</h1>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <button onClick={() => handleLogin('customer')} className="btn btn-primary" style={{ width: '100%' }}>
-            Continue as Customer
-          </button>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#b3b3b3' }}>
-            <div style={{ flex: 1, height: '1px', background: '#333' }}></div>
-            <span>OR</span>
-            <div style={{ flex: 1, height: '1px', background: '#333' }}></div>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="form-group">
+            <label>User ID</label>
+            <input 
+                value={username} 
+                onChange={e => setUsername(e.target.value)} 
+                required 
+            />
           </div>
-
-          <button onClick={() => handleLogin('employee')} className="btn btn-secondary" style={{ width: '100%' }}>
-            Access Employee Portal
+          <div className="form-group">
+            <label>Password</label>
+            <input 
+                type="password" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required 
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+            Login
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );

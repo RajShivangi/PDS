@@ -1,5 +1,8 @@
-from rest_framework import viewsets
-from rest_framework.permissions import AllowAny  # you can tighten later
+from rest_framework import viewsets, generics, permissions
+from rest_framework.permissions import AllowAny  
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer, UserRegistrationSerializer
+from .permissions import IsEmployee
 
 from .models import (
     Country,
@@ -139,3 +142,13 @@ class FeedbackViewSet(BaseViewSet):
 class ScheduleViewSet(BaseViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
+
+# 1. Login View
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+# 2. Admin: Register User View
+class RegisterUserView(generics.CreateAPIView):
+    serializer_class = UserRegistrationSerializer
+    # Only Employees/Admins can create new users
+    permission_classes = [permissions.IsAuthenticated, IsEmployee]

@@ -2,17 +2,21 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 
 function AdminDashboard() {
+  // --- State Definitions ---
   const [series, setSeries] = useState([]);
   const [formData, setFormData] = useState({
     web_series_id: '', name: '', no_of_episodes: 0, release_date: '', language: '', description: ''
   });
+  const [newUser, setNewUser] = useState({ username: '', password: '', email: '' });
 
+  // --- Effects ---
   const fetchSeries = () => {
     api.get('series/').then(res => setSeries(res.data));
   };
 
   useEffect(fetchSeries, []);
 
+  // --- Handlers ---
   const handleDelete = (id) => {
     if(window.confirm("Are you sure you want to delete this series?")) {
         api.delete(`series/${id}/`).then(fetchSeries);
@@ -30,9 +34,62 @@ function AdminDashboard() {
         .catch(err => alert('Error: ' + JSON.stringify(err.response.data)));
   };
 
+  const handleCreateUser = (e) => {
+    e.preventDefault();
+    api.post('register/', { ...newUser, role: 'customer' })
+        .then(() => {
+            alert('Customer Created Successfully!');
+            setNewUser({ username: '', password: '', email: '' });
+        })
+        .catch(err => alert('Error creating user: ' + JSON.stringify(err.response?.data)));
+  };
+
+  // --- Single Return Statement ---
   return (
     <div>
-      <h2 style={{ marginBottom: '20px' }}>Content Management System</h2>
+      <h2 style={{ marginBottom: '20px' }}>Admin Dashboard</h2>
+
+      {/* --- SECTION 1: User Registration --- */}
+      <div className="card" style={{ marginBottom: '30px', borderLeft: '4px solid #2ecc71' }}>
+        <div className="card-body">
+            <h3 style={{ color: 'white', marginBottom: '15px' }}>Register New Customer</h3>
+            <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '15px', alignItems: 'end' }}>
+                <div className="form-group">
+                    <label>Username</label>
+                    <input 
+                        value={newUser.username} 
+                        onChange={e => setNewUser({...newUser, username: e.target.value})} 
+                        required 
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Password</label>
+                    <input 
+                        type="password" 
+                        value={newUser.password} 
+                        onChange={e => setNewUser({...newUser, password: e.target.value})} 
+                        required 
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Email (Optional)</label>
+                    <input 
+                        type="email" 
+                        value={newUser.email} 
+                        onChange={e => setNewUser({...newUser, email: e.target.value})} 
+                    />
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ height: '42px', backgroundColor: '#2ecc71', border: 'none' }}>
+                    Add User
+                </button>
+            </form>
+        </div>
+      </div>
+
+      <hr style={{borderColor: '#333', margin: '40px 0'}} />
+
+      {/* --- SECTION 2: Series Management --- */}
+      <h3 style={{color: 'white', marginBottom: '15px'}}>Content Management System</h3>
       
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
         

@@ -1,25 +1,36 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
-    User,
-    Country,
-    Language,
-    SeriesType,
-    ProductionHouse,
-    Producer,
-    ProducerHouse,
-    WebSeries,
-    WebSeriesType,
-    Episode,
-    WebSeriesDubbing,
-    WebSeriesSubtitle,
-    WebSeriesCountry,
-    Contract,
-    ViewerAccount,
-    Subscription,
-    Feedback,
-    Schedule,
+    User, Country, Language, SeriesType, ProductionHouse, Producer, ProducerHouse,
+    WebSeries, WebSeriesType, Episode, WebSeriesDubbing, WebSeriesSubtitle,
+    WebSeriesCountry, Contract, ViewerAccount, Subscription, Feedback, Schedule
 )
 
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['role'] = user.role  # Embed role in token
+        token['username'] = user.username
+        return token
+
+# 2. User Registration Serializer (For Admin to add Customers)
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'email', 'role']
+
+    def create(self, validated_data):
+        # This securely hashes the password
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            password=validated_data['password'],
+            email=validated_data.get('email', ''),
+            role=validated_data.get('role', 'customer')
+        )
+        return user
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
