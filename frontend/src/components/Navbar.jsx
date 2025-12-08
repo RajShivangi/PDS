@@ -11,7 +11,7 @@ function Navbar({ userRole, setUserRole }) {
   return (
     <nav className="navbar">
       <Link to={userRole === 'customer' ? "/customer" : userRole === 'employee' ? "/admin" : "/"} className="brand">
-        NEWS
+        SHOWFLIX
       </Link>
       {userRole && (
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>

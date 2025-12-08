@@ -13,6 +13,7 @@ function AdminDashboard() {
 
   // User Forms State
   const [newUser, setNewUser] = useState({ username: '', password: '', email: '' });
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false); // Eye toggle state
 
   // Episode Forms State
   const [episodeData, setEpisodeData] = useState(null); 
@@ -52,51 +53,32 @@ function AdminDashboard() {
   const closeEpisodeModal = () => setEpisodeData(null);
 
   // --- Handlers ---
-  
-  // 1. Save Edited Series
-    const handleSaveEdit = async () => {
-        try {
-            await api.put(`series/${editData.web_series_id}/`, editData);
-            alert("Updated successfully!");
-            fetchSeries();
-            closeEditModal();
-        } catch (error) {
-            alert("Update failed: " + JSON.stringify(error.response?.data));
-        }
-    };
+  const handleSaveEdit = async () => {
+    try {
+        await api.put(`series/${editData.web_series_id}/`, editData);
+        alert("Updated successfully!");
+        fetchSeries();
+        closeEditModal();
+    } catch (error) {
+        alert("Update failed: " + JSON.stringify(error.response?.data));
+    }
+  };
 
-    const handleImageUpload = (e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // Dummy static URL for testing
     const dummyUrl = "https://m.media-amazon.com/images/I/81YOuOGFCJL._AC_UF894,1000_QL80_.jpg";
+    setFormData(prev => ({ ...prev, image_url: dummyUrl }));
+    if (editData) { setEditData(prev => ({ ...prev, image_url: dummyUrl })); }
+    alert("Image selected!");
+  };
 
-    // Update the create-form state
-    setFormData(prev => ({
-        ...prev,
-        image_url: dummyUrl,
-    }));
-
-    // If editing, update edit state too
-    if (editData) {
-        setEditData(prev => ({
-        ...prev,
-        image_url: dummyUrl,
-        }));
-    }
-
-    alert("image added!");
-    };
-
-  // 2. Delete Series
   const handleDelete = (id) => {
     if(window.confirm("Are you sure you want to delete this series?")) {
         api.delete(`series/${id}/`).then(fetchSeries);
     }
   };
 
-  // 3. Create New Series
   const handleSubmit = (e) => {
     e.preventDefault();
     api.post('series/', formData)
@@ -105,14 +87,12 @@ function AdminDashboard() {
             fetchSeries();
             setFormData({ 
                 web_series_id: '', name: '', no_of_episodes: 0, release_date: '', 
-                language: '', 
-                description: '' 
+                language: '', description: '', image_url: '' 
             });
         })
         .catch(err => alert('Error: ' + JSON.stringify(err.response.data)));
   };
 
-  // 4. Create New User
   const handleCreateUser = (e) => {
     e.preventDefault();
     api.post('register/', { ...newUser, role: 'customer' })
@@ -123,10 +103,8 @@ function AdminDashboard() {
         .catch(err => alert('Error creating user: ' + JSON.stringify(err.response?.data)));
   };
 
-  // 5. Create Episode
   const handleCreateEpisode = (e) => {
       e.preventDefault();
-      
       const payload = {
           ...newEpisode,
           web_series: episodeData,
@@ -150,28 +128,52 @@ function AdminDashboard() {
       {/* --- User Registration --- */}
       <div className="card" style={{ marginBottom: '30px', borderLeft: '4px solid #2ecc71' }}>
         <div className="card-body">
-            <h3 style={{ color: 'white', marginBottom: '15px' }}>Register New Customer</h3>
-            <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '15px', alignItems: 'end' }}>
-                <div className="form-group">
+            <h3 style={{ color: 'white', marginBottom: '20px' }}>Register New Customer</h3>
+            <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', alignItems: 'end' }}>
+                <div className="form-group" style={{marginBottom: 0}}>
                     <label>Username</label>
                     <input value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} required />
                 </div>
-                <div className="form-group">
+                
+                <div className="form-group" style={{marginBottom: 0}}>
                     <label>Password</label>
-                    <input type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} required />
+                    <div style={{ position: 'relative' }}>
+                        <input 
+                            type={showRegisterPassword ? "text" : "password"} 
+                            value={newUser.password} 
+                            onChange={e => setNewUser({...newUser, password: e.target.value})} 
+                            required 
+                            style={{ width: '100%', paddingRight: '40px' }}
+                        />
+                        <button 
+                            type="button"
+                            onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                            style={{
+                                position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                                background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', padding: 0, fontSize: '1.2rem'
+                            }}
+                        >
+                            {showRegisterPassword ? '👁️' : '🙈'}
+                        </button>
+                    </div>
                 </div>
-                <div className="form-group">
+
+                <div className="form-group" style={{marginBottom: 0}}>
                     <label>Email (Optional)</label>
                     <input type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} />
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ height: '42px', backgroundColor: '#2ecc71', border: 'none' }}>Add User</button>
+
+                <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '42px', backgroundColor: '#2ecc71', border: 'none' }}>
+                        Create Customer Account
+                    </button>
+                </div>
             </form>
         </div>
       </div>
 
       <hr style={{borderColor: '#333', margin: '40px 0'}} />
 
-      {/* --- Series Management --- */}
       <h3 style={{color: 'white', marginBottom: '15px'}}>Content Management System</h3>
       
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
@@ -194,7 +196,6 @@ function AdminDashboard() {
                         <input type="date" value={formData.release_date} onChange={e => setFormData({...formData, release_date: e.target.value})} required />
                     </div>
                     
-                    {/* CHANGED: Text Input for Language */}
                     <div className="form-group">
                         <label>Language</label>
                         <input 
@@ -205,11 +206,32 @@ function AdminDashboard() {
                         />
                     </div>
 
-                    
+                    {/* UPDATED: Choose Image Button */}
                     <div className="form-group">
-                        <input type="file" 
-                        accept="image/*" 
-                        onChange={handleImageUpload}/>
+                        <label>Cover Image</label>
+                        <label 
+                            htmlFor="file-upload" 
+                            className="btn btn-secondary" 
+                            style={{
+                                width: '100%', 
+                                display: 'block', 
+                                textAlign: 'center', 
+                                cursor: 'pointer',
+                                boxSizing: 'border-box', // Fixes indentation issue
+                                padding: '12px',         // Matches input field height
+                                borderRadius: '4px'
+                            }}
+                        >
+                            Choose Image
+                        </label>
+                        <input 
+                            id="file-upload" 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleImageUpload} 
+                            style={{display: 'none'}} 
+                        />
+                        {formData.image_url && <small style={{color: '#2ecc71', display: 'block', marginTop: '5px'}}>Image selected!</small>}
                     </div>
 
                     <div className="form-group">
@@ -244,17 +266,14 @@ function AdminDashboard() {
                             <td>
                                 <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
                                     
-                                    {/* Edit */}
                                     <button onClick={() => openEditModal(s)} style={{background: "transparent", border: "1px solid #ff4d4d", padding: "6px", borderRadius: "4px", cursor: "pointer", display: "flex"}} title="Edit Series">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4d4d"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1.003 1.003 0 00-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.83z"/></svg>
                                     </button>
 
-                                    {/* Add Episode */}
                                     <button onClick={() => openEpisodeModal(s.web_series_id)} style={{background: "transparent", border: "1px solid #2ecc71", padding: "6px", borderRadius: "4px", cursor: "pointer", display: "flex"}} title="Add Episode">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="#2ecc71"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                                     </button>
 
-                                    {/* Delete */}
                                     <button onClick={() => handleDelete(s.web_series_id)} style={{background: "transparent", border: "1px solid #ff4d4d", padding: "6px", borderRadius: "4px", cursor: "pointer", display: "flex"}} title="Delete Series">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4d4d"><path d="M9 3V4H4V6H5V20C5 21.1 5.9 22 7 22H17C18.1 22 19 21.1 19 20V6H20V4H15V3H9ZM7 6H17V20H7V6ZM9 8V18H11V8H9ZM13 8V18H15V8H13Z"/></svg>
                                     </button>
@@ -274,13 +293,9 @@ function AdminDashboard() {
                     <h3>Edit Series</h3>
                     <div className="form-group"><label>Name</label><input value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} /></div>
                     
-                    {/* CHANGED: Text Input for Edit Language */}
                     <div className="form-group">
                         <label>Language</label>
-                        <input 
-                            value={editData.language} 
-                            onChange={e => setEditData({ ...editData, language: e.target.value })} 
-                        />
+                        <input value={editData.language} onChange={e => setEditData({ ...editData, language: e.target.value })} />
                     </div>
 
                     <div className="form-group"><label>Description</label><textarea value={editData.description || ""} onChange={e => setEditData({ ...editData, description: e.target.value })} /></div>

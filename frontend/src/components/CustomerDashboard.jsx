@@ -15,10 +15,6 @@ function CustomerDashboard() {
       <div className="grid">
         {series.map(s => (
           <div key={s.web_series_id} className="card">
-            {/* Placeholder for Poster Image - uses a gray block if no image */}
-            {/* <div style={{ height: '140px', backgroundColor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
-               <span>POSTER</span>
-            </div> */}
             <div style={{ height: '140px', overflow: 'hidden', borderRadius: '6px' }}>
                 {s.image_url ? (
                     <img 
@@ -47,8 +43,8 @@ function CustomerDashboard() {
                   {s.description}
                 </p>
                 <div style={{ marginTop: '10px', display: 'flex', gap: '10px', fontSize: '0.8rem', color: '#999' }}>
-                   <span>{s.no_of_episodes} Episodes</span>
-                   <span>• {s.language}</span>
+                   {/* Removed Episode Count */}
+                   <span>{s.language}</span>
                 </div>
               </div>
               <Link to={`/customer/series/${s.web_series_id}`} style={{ marginTop: '15px' }}>
