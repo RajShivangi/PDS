@@ -73,49 +73,94 @@ class ProducerHouseSerializer(serializers.ModelSerializer):
         model = ProducerHouse
         fields = "__all__"
 
+# Replace your WebSeriesSerializer with this:
 
 class WebSeriesSerializer(serializers.ModelSerializer):
-    # Input: Accepts text string (e.g., "English", "wer")
+    # Input: Text string for language
     language = serializers.CharField(write_only=True)
     
-    # Output: Shows the full language object in API responses (optional but good for frontend)
+    # Output: Full language details
     language_details = LanguageSerializer(source='language', read_only=True)
+
+    # DYNAMIC COUNT: Counts real episodes in the database
+    episode_count = serializers.IntegerField(source='episode_set.count', read_only=True)
 
     class Meta:
         model = WebSeries
         fields = [
             "web_series_id", 
             "name", 
-            "no_of_episodes", 
+            "no_of_episodes", # Manual count (static)
+            "episode_count",  # Real count (dynamic)
             "release_date", 
             "description", 
-            "language",          # Input (Write)
-            "language_details",  # Output (Read)
+            "language",          
+            "language_details",
+            "image_url",
             "producer",
-            "producer_house",
-            "image_url"
+            "producer_house"
         ]
 
     def create(self, validated_data):
-        # 1. Remove the string 'language' from the data so it doesn't crash the model
         language_name = validated_data.pop('language')
-        
-        # 2. Generate a code (First 10 chars, uppercase)
-        # e.g., "French" -> "FRENCH", "LongLanguageName" -> "LONGLANGUA"
         lang_code = language_name[:10].upper()
         
-        # 3. Get existing Language OR Create a new one
         language_instance, created = Language.objects.get_or_create(
             country_name=language_name,
             defaults={'language_code': lang_code}
         )
         
-        # 4. Create the WebSeries using the actual Language INSTANCE
         web_series = WebSeries.objects.create(
-            language=language_instance,  # <--- Assign the Object, not the string
+            language=language_instance,
             **validated_data
         )
         return web_series
+# class WebSeriesSerializer(serializers.ModelSerializer):
+#     # Input: Accepts text string (e.g., "English", "wer")
+#     language = serializers.CharField(write_only=True)
+    
+#     # Output: Shows the full language object in API responses (optional but good for frontend)
+#     language_details = LanguageSerializer(source='language', read_only=True)
+
+#     # NEW: Automatically counts related episodes from the database
+#     episode_count = serializers.IntegerField(source='episode_set.count', read_only=True)
+
+#     class Meta:
+#         model = WebSeries
+#         fields = [
+#             "web_series_id", 
+#             "name", 
+#             "no_of_episodes", 
+#             "episode_count",
+#             "release_date", 
+#             "description", 
+#             "language",          # Input (Write)
+#             "language_details",  # Output (Read)
+#             "producer",
+#             "producer_house",
+#             "image_url"
+#         ]
+
+#     def create(self, validated_data):
+#         # 1. Remove the string 'language' from the data so it doesn't crash the model
+#         language_name = validated_data.pop('language')
+        
+#         # 2. Generate a code (First 10 chars, uppercase)
+#         # e.g., "French" -> "FRENCH", "LongLanguageName" -> "LONGLANGUA"
+#         lang_code = language_name[:10].upper()
+        
+#         # 3. Get existing Language OR Create a new one
+#         language_instance, created = Language.objects.get_or_create(
+#             country_name=language_name,
+#             defaults={'language_code': lang_code}
+#         )
+        
+#         # 4. Create the WebSeries using the actual Language INSTANCE
+#         web_series = WebSeries.objects.create(
+#             language=language_instance,  # <--- Assign the Object, not the string
+#             **validated_data
+#         )
+#         return web_series
 
 class WebSeriesTypeSerializer(serializers.ModelSerializer):
     class Meta:

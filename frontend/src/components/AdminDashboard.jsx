@@ -116,6 +116,7 @@ function AdminDashboard() {
       api.post('episodes/', payload)
         .then(() => {
             alert('Episode Added Successfully!');
+            fetchSeries();
             closeEpisodeModal();
         })
         .catch(err => alert('Error adding episode: ' + JSON.stringify(err.response?.data)));
@@ -262,7 +263,7 @@ function AdminDashboard() {
                             <td style={{ fontFamily: 'monospace', color: '#888' }}>{s.web_series_id}</td>
                             <td style={{ fontWeight: 'bold' }}>{s.name}</td>
                             <td>{s.release_date}</td>
-                            <td>{s.no_of_episodes}</td>
+                            <td>{s.episode_count}</td>
                             <td>
                                 <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
                                     
@@ -331,13 +332,6 @@ function AdminDashboard() {
                         <div className="form-group">
                             <label>Title</label>
                             <input value={newEpisode.episode_title} onChange={e => setNewEpisode({...newEpisode, episode_title: e.target.value})} required />
-                        </div>
-                        <div className="form-group">
-                            <label>Tech Interruption?</label>
-                            <select value={newEpisode.tech_interruption_flag} onChange={e => setNewEpisode({...newEpisode, tech_interruption_flag: e.target.value})}>
-                                <option value="N">No</option>
-                                <option value="Y">Yes</option>
-                            </select>
                         </div>
                         <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
                             <button type="submit" className="btn btn-primary" style={{flex: 1}}>Add Episode</button>
